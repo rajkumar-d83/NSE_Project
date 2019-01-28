@@ -7,10 +7,10 @@ def mysql_connect(db_name):
 
     user = credentials.login['mysql_user']
     passwd = credentials.login['mysql_pass']
-    __sqlalchemy_uri__ = 'mysql+mysqlconnector://' + user + ':' + passwd + '@localhost:3306/'
+    __sql_alchemy_uri__ = 'mysql+mysqlconnector://' + user + ':' + passwd + '@localhost:3306/'
     __sql_db_name__ = db_name
 
-    db_con = sa.create_engine(__sqlalchemy_uri__ + __sql_db_name__)
+    db_con = sa.create_engine(__sql_alchemy_uri__ + __sql_db_name__)
     return db_con
 
 
@@ -43,6 +43,7 @@ if __name__ == "__main__":
     result_df['price_loaded_flag'] = 'N'
     # result_df['date'] = result_df['date'].astype('object')
     print(result_df['date'].dtype)
+
     # mysql> update nse_work_date set work_day_flag = '0' where day_of_week in ('Saturday' , 'Sunday');
     # mysql> update nse_work_date set work_day_flag = '0' where description != ' ';
 
