@@ -1,12 +1,12 @@
 import pandas as pd
 import sqlalchemy as sa
-import credentials
+import credentials as con
 
 
 def mysql_connect(db_name):
 
-    user = credentials.login['mysql_user']
-    passwd = credentials.login['mysql_pass']
+    user = con.mysql['mysql_user']
+    passwd = con.mysql['mysql_pass']
     __sql_alchemy_uri__ = 'mysql+mysqlconnector://' + user + ':' + passwd + '@localhost:3306/'
     __sql_db_name__ = db_name
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     hlist_df['h_date'] = pd.to_datetime(hlist_df['Date'])
     hlist_df.drop("Date", axis=1, inplace=True)
 
-    date_rng = pd.date_range(start='1/1/2011', end='1/12/2019', freq='D')
+    date_rng = pd.date_range(start='1/1/2011', end='12/31/2019', freq='D')
     date_df = pd.DataFrame(date_rng, columns=['date'])
     # df = df.set_index('date')
 
@@ -40,10 +40,12 @@ if __name__ == "__main__":
     result_df.drop("h_date", axis=1, inplace=True)
     result_df = result_df.fillna(' ')
     result_df['date'] = result_df['date'].apply(lambda x: x.date())
+    result_df['price_received_flag'] = 'N'
     result_df['price_loaded_flag'] = 'N'
     # result_df['date'] = result_df['date'].astype('object')
     print(result_df['date'].dtype)
 
+    # following are additional  updates
     # mysql> update nse_work_date set work_day_flag = '0' where day_of_week in ('Saturday' , 'Sunday');
     # mysql> update nse_work_date set work_day_flag = '0' where description != ' ';
 
