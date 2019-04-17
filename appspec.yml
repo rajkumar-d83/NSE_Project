@@ -1,0 +1,16 @@
+version: 0.0
+os: linux
+files:
+  - source: ./nse_project
+    destination: /home/ec2-home/nse_project/
+
+hooks:
+  BeforeInstall:
+    - location: codedeploy/remove_previous_install.sh
+      timeout: 30
+  ApplicationStop:
+    - location: codedeploy/stop_server.sh
+      timeout: 30
+  ApplicationStart:
+    - location: codedeploy/start_server.sh
+      timeout: 30
