@@ -1,10 +1,16 @@
 from nsepy.history import get_price_list
 import sqlalchemy as sa
 import pandas as pd
-import credentials as con
+from pandas.io import sql
 from datetime import date
 import boto3
 # import s3fs
+
+import sys
+
+sys.path.append('..')
+
+import credentials as con
 
 
 def get_s3_config_data():
@@ -38,7 +44,8 @@ def mysql_connect(db_name):
 
     user = con.mysql['mysql_user']
     passwd = con.mysql['mysql_pass']
-    __sql_alchemy_uri__ = 'mysql+mysqlconnector://' + user + ':' + passwd + '@localhost:3306/'
+    mhost = con.mysql['mysql_host']
+    __sql_alchemy_uri__ = 'mysql+mysqlconnector://' + user + ':' + passwd + '@' + mhost + ':3306/'
     __sql_db_name__ = db_name
 
     db_con = sa.create_engine(__sql_alchemy_uri__ + __sql_db_name__)
@@ -50,7 +57,7 @@ def mysql_close(db_con):
 
 
 def extract_nse_daily(s_dt):
-
+    print(s_dt)
     data = get_price_list(dt=date(s_dt.year, s_dt.month, s_dt.day))
     data.columns = data.columns.str.strip().str.lower().str.replace(' ', '_').str.replace('(', '').str.replace(')', '')
 
@@ -64,7 +71,7 @@ if __name__ == "__main__":
     s3_bucket = con.aws['s3']['bucket']
 
     query = ''' select date from nse_work_date where date > "2019-01-01" and work_day_flag = 1 
-                and price_received_flag = "N" limit 10; '''
+                and price_received_flag = "N" limit 1; '''
 
     df = pd.read_sql_query(query, nse_db)
 
@@ -73,18 +80,20 @@ if __name__ == "__main__":
 
         # extract the daily nse equity price file
         df1 = extract_nse_daily(i[0])
+        df1.set_index(['symbol', 'series', 'timestamp'])
 
+        # json_path = '/home/ec2-user/nse_project/files/nse_price_' + str(i[0]) + '.json'
         json_path = '/Users/raj/data-samples/nse/equity/nse_price_' + str(i[0]) + '.json'
-        csv_path = '/Users/raj/data-samples/nse/equity/nse_price_' + str(i[0]) + '.csv'
+        # csv_path = '/Users/raj/data-samples/nse/equity/nse_price_' + str(i[0]) + '.csv'
         # print(json_path)
 
         # copy into local directory
-        df1.to_json(json_path, orient='table')
-        df1.to_csv(csv_path, sep=',', na_rep='', mode='w', quotechar='"', line_terminator='\n')
+        df1.to_json(json_path, orient='table', index=False)
+        # df1.to_csv(csv_path, sep=',', na_rep='', mode='w', quotechar='"', line_terminator='\n', index=False)
 
         # upload the files to AWS - s3 bucket
-        s3_key = con.aws['s3']['key'] + 'csv/nse_price_' + str(i[0]) + '.csv'
-        s3_upload_obj(s3, s3_bucket, s3_key, csv_path)
+        # s3_key = con.aws['s3']['key'] + 'csv/nse_price_' + str(i[0]) + '.csv'
+        # s3_upload_obj(s3, s3_bucket, s3_key, csv_path)
         # s3_file_write(s3_bucket, s3_key, df1, 'csv')
 
         s3_key = con.aws['s3']['key'] + 'json/nse_price_' + str(i[0]) + '.json'
@@ -92,12 +101,12 @@ if __name__ == "__main__":
         # s3_file_write(s3_bucket, s3_key, df1, 'json')
 
         # upload to local mysql table
-        df1.to_sql(name='equity_price_hist', if_exists='append', index=True, con=nse_db)
+        df1.to_sql(name='equity_price_hist', if_exists='append', index=False, con=nse_db)
 
         # update the flag int he control file for successful processing
         query = ''' update nse_work_date set price_received_flag ="Y" where date = "''' + str(i[0]) + '''" '''
         print(query)
-        pd.execute(query, nse_db)
+        sql.execute(query, nse_db)
 
         # take a break
         # time.sleep(120)
